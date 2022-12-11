@@ -1,0 +1,1 @@
+A repository for my various Advent of Code (https://adventofcode.com/) solutions.
