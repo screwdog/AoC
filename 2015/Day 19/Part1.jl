@@ -33,16 +33,4 @@ function day19p1(test=false)
     inputmolecule, transforms = readData(inputfile)
     return nextGeneration([inputmolecule], transforms) |> length
 end
-
-function day19p2(test=false)
-    inputfile = test ? "p2test.txt" : "input.txt"
-    inputmolecule, transforms = readData(inputfile)
-    molecules = ["e"]
-    for generation ∈ 1:7
-        molecules = nextGeneration(molecules, transforms)
-        inputmolecule ∈ molecules && return generation
-    end
-    return nothing
-end
-day19p2()
-#day19.(false:true)
+day19p1()
