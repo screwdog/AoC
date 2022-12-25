@@ -31,6 +31,8 @@ end
 
 tuningFreq(x,y) = 4_000_000x + y
 function day15p2(test=false)
+    # WARNING! This code may take several hours to run. It was simply my first (and worst) attempt at the puzzle
+
     COORD_RANGE = test ? (0:20) : (0:4_000_000)
     colData = @_ test |>
         readdata |>

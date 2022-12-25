@@ -1,4 +1,5 @@
 using Underscores
+include("DisjointRanges.jl")
 function readdata(test=false)
     @_ (test ? "test.txt" : "input.txt")    |>
         read(__, String)                    |>
@@ -36,19 +37,10 @@ function day15p2(test=false)
         readdata        |>
         eachcol
 
-    
-
-    beacon = Vector{Bool}(undef, last(COORD_RANGE))
     for y ∈ COORD_RANGE
-        fill!(beacon, true)
-        ranges = excludeRange.(colData, y)
-        for range ∈ ranges
-            constrainedRange = max(first(range), 1):min(last(range), last(COORD_RANGE))
-            beacon[constrainedRange] .= false
-        end
-        x = findfirst(beacon)
-        x !== nothing && return x, y
-        mod(y, 1000) == 0 && println("Finished row y = $y")
+        excluded = DisjointRanges(excludeRange.(colData, y))
+        excluded ≠ COORD_RANGE && return setdiff(COORD_RANGE, excluded)
     end
-    return "None found!"
+    return nothing
 end
+@time day15p2(true)
