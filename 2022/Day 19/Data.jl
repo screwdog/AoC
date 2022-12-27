@@ -1,28 +1,23 @@
-ORE = 1
-CLAY = 2
-OBSIDIAN = 3
-GEODE = 4
-TIME = 5
+const R_ORE = 1
+const R_CLAY = 2
+const R_OBSIDIAN = 3
+const R_GEODE = 4
 
-resourceLabels = ["ore", "clay", "obsidian", "geode"]
+numbers(str) = eachmatch(r"(\d+)", str) |>
+    matches -> first.(matches)          |>
+    digits -> parse.(Int, digits)
 
-function readdata(filename)
-    @_ read(filename, String) |>
-        eachmatch(r"(\d+)", __) |>
-        first.(__) |>
-        parse.(Int, __) |>
-        Iterators.partition(__, 7) |>
-        map([_...], __)
+function makeBlueprint(str)
+    blueprint = fill(0, (4, 3))
+    data = numbers(str)
+    blueprint[R_ORE:R_GEODE, R_ORE] .= data[[2,3,4,6]]
+    blueprint[R_OBSIDIAN, R_CLAY] = data[5]
+    blueprint[R_GEODE, R_OBSIDIAN] = data[7]
+    return blueprint
 end
 
-function makeblueprints(data)
-    function makeblueprint(d)
-        blueprint = fill(0, 4, 3)
-        blueprint[1:2, 1] = d[2:3]
-        blueprint[3, 1:2] = d[4:5]
-        blueprint[4, 1] = d[6]
-        blueprint[4, 3] = d[7]
-        return blueprint
-    end
-    return makeblueprint.(data)
+function readdata(filename, part2)
+    lines = readlines(filename)
+    part2 && (lines = first(lines, 3))
+    return makeBlueprint.(lines)
 end
