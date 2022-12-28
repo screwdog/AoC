@@ -1,56 +1,36 @@
-using Underscores
+const EMPTY_CHAR = '.'
+const BLOCK_CHAR = '#'
+const MAX_BLOCK_HEIGHT = 4
 
 struct Block
-    shape::Matrix{Bool}
-    width::Int
-    height::Int
+    data::Union{Matrix{Bool}, BitMatrix}
+    width::Int8
+    height::Int8
 end
-width(b::Block) = b.width
-height(b::Block) = b.height
-
-function _string2block(str)
-    line2row(l) = map((==)('#'), collect(l))
-
-    shape = @_ str          |>
-        split(__, "\n")     |>
-        collect.(__)        |>
-        reverse             |>
-        hcat(__...)         |>
-        map((==)('#'), __)
-    width, height = size(shape)
-
-    return Block(shape, width, height)
-end
-
-Block(str::AbstractString) = _string2block(str)
-
-mutable struct Blocks
-    blocks::Vector{Block}
-    current::Int
-    function Blocks(blocks::Vector{Block}, current::Int)
-        isempty(blocks) && throw(ErrorException("Blocks requires blocks to be non-empty but received $blocks"))
-        0 ≤ current ≤ length(blocks)-1 || throw(ErrorException("Blocks requires 0 ≤ current ≤ length(blocks)-1 but received current $current and blocks $blocks"))
-        new(blocks, current)
+function Block(lines)
+    length(lines) == 0 && return Block(fill(false, 0, 0), 0, 0)
+    if !allequal(length.(lines))
+        @warn "Block: unequal string lengths [fixed]"
+        maxLength = maximum(length, lines)
+        lines = rpad.(lines, maxLength, EMPTY_CHAR)
     end
+    width = length(lines[1])
+    height = length(lines)
+    data = @_ lines         |>
+        reverse             |>
+        collect.(__)        |>
+        hcat(__...)         |>
+        (__ .== BLOCK_CHAR)
+    
+    return Block(data, width, height)
 end
-Blocks(blocks::Vector{Block}) = Blocks(blocks, 0)
-function Base.iterate(b::Blocks, state)
-    b.current = mod(b.current, length(b.blocks)) + 1
-    (b.blocks[b.current], b.current)
-end
-Base.iterate(b::Blocks) = iterate(b, 0)
-next(b::Blocks) = b |> iterate |> first
-Base.IteratorSize(::Blocks) = Base.IsInfinite()
-Base.eltype(::Blocks) = Block
-Base.isdone(::Blocks) = false
-Base.isdone(::Blocks, state) = false
-Base.getindex(b::Blocks, i::Int) = b.blocks[i]
 
-standardBlocks() = Blocks(Block.(
-        ["####",
-         ".#.\n###\n.#.",
-         "..#\n..#\n###",
-         "#\n#\n#\n#",
-         "##\n##"]
-        )
-    )
+function standardBlocks()
+    @_ "blocks.txt"         |>
+        read(__, String)    |>
+        split(__, "\n\n")   |>
+        split.(__)          |>
+        Block.(__)          |>
+        Iterators.Cycle     |>
+        Iterators.Stateful
+end
