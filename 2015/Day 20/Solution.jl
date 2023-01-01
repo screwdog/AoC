@@ -9,16 +9,21 @@ function sumDivisors(n)
     return Σ
 end
 
-function day20p1()
-    MIN_PRESENTS = 29_000_000÷10
+function presents(n, part2=false)
+    part2 || return 10*sumDivisors(n)
+
+    Σ = n
+    for i ∈ 2:50
+        mod(n, i) == 0 && (Σ += n÷i)
+    end
+    return 11*Σ
+end
+
+function day20(part2)
+    MIN_PRESENTS = 29_000_000
     for i ∈ 1:MIN_PRESENTS
-        sumDivisors(i) ≥ MIN_PRESENTS && return i
+        presents(i, part2) ≥ MIN_PRESENTS && return i
     end
     return nothing
 end
-
-function day20p2()
-    
-end
-@time day20p1()
-#day20.(false:true)
+day20.(false:true)
