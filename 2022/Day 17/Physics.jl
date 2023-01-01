@@ -2,7 +2,7 @@ next!(itr) = itr |> iterate |> first
 
 function blocked(c::Chamber, b::Block, x, y)
     1 ≤ x ≤ CHAMBER_WIDTH - b.width + 1 || return true
-    y > c.floorHeight || return true
+    1 ≤ y ≤ BUFFER_HEIGHT - b.height + 1 || return true
     for i ∈ 1:b.width, j ∈ 1:b.height
         b.data[i, j] && c.buffer[x + i - 1, y + j - 1] && return true
     end
@@ -31,11 +31,21 @@ function dropBlock!(c::Chamber, blocks, wind)
         end
     end
 end
-
-function dropBlocks!(c::Chamber, blocks, wind, numblocks)
-    for _ ∈ 1:numblocks
-        canDrop(c) || (@info "chamber buffer full, compacting."; compact!(c))
-        dropBlock!(c, blocks, wind)
+dropBlock!(cs::ChamberState) = dropBlock!(cs.chamber, cs.blocks, cs.wind)
+function unsafe_dropBlocks!(cs::ChamberState, numBlocks)
+    for _ ∈ 1:numBlocks
+        dropBlock!(cs)
     end
-    return towerHeight(c)
+    cs.blocksDropped += numBlocks
+end
+
+function dropBlocks!(cs::ChamberState, numblocks)
+    while numblocks > 0
+        toDrop = min(numblocks, safeDrops(cs))
+        unsafe_dropBlocks!(cs, toDrop)
+
+        safeDrops(cs) ≤ COMPACT_THRESHOLD && compact!(cs)
+        numblocks -= toDrop
+    end
+    return towerHeight(cs)
 end

@@ -1,6 +1,9 @@
 const EMPTY_CHAR = '.'
 const BLOCK_CHAR = '#'
+# These constants only apply to the standardBlocks as
+# provided in the puzzle and in blocks.txt
 const MAX_BLOCK_HEIGHT = 4
+const BLOCK_CYCLE_LENGTH = 5 
 
 struct Block
     data::Union{Matrix{Bool}, BitMatrix}
@@ -31,6 +34,5 @@ function standardBlocks()
         split(__, "\n\n")   |>
         split.(__)          |>
         Block.(__)          |>
-        Iterators.Cycle     |>
-        Iterators.Stateful
+        StatefulCycle
 end
