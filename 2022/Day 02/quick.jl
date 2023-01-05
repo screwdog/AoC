@@ -3,7 +3,11 @@ Quick.jl
 ========
 
 This file is my attempt at solving the puzzle at the time of release
-and is not necessarily good practice. 
+and is not necessarily good practice. In particular, this should be
+placed within a function rather than as a plain script.
+
+Basic approach here is to predefine the winning scores for every combination
+of letters.
 """
 
 task1plays = Dict([
@@ -33,6 +37,9 @@ task2plays = Dict([
 (readlines(raw"input.txt") |>
     L -> map(s -> task1plays[s], L) |>
     sum,
+    # Actually don't need to map and then sum, as sum accepts a function to
+    # apply to each item as a 1st argument ie sum(s -> task1plays[s], L) does
+    # the same thing without creating an intermediate result.
 
 readlines(raw"input.txt") |>
     L -> map(s -> task2plays[s], L) |>

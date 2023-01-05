@@ -37,6 +37,6 @@ function day1()
             end
         end
     end
-    println("Task 1: $(maximum(top3))\nTask 2: $(sum(top3))")
+    println("Part 1: $(maximum(top3))\nPart 2: $(sum(top3))")
 end
 day1()
