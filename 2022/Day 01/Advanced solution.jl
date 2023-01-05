@@ -1,7 +1,9 @@
-readchomp(raw"C:\Users\rayha\Desktop\AoC\2022\Day 1\input.txt") |>
-    s -> split(s, "\n\n")                |>
-    L -> split.(L)                       |>
-    L -> [parse.(Int,l) for l ∈ L]       |>
-    L -> sum.(L)                         |>
-    L -> partialsort(L, 1:3; rev = true) |>
-    L -> (L[1], sum(L))
+using Underscores
+@_ "input.txt"                      |>
+    readchomp                       |> # read input as a single string
+    split(__, "\n\n")               |> # split at empty lines (ie into elves)
+    split.(__)                      |> # split each elf's calories
+    map(parse.(Int,_), __)          |> # convert all to integers
+    sum.(__)                        |> # sum each elf's calories
+    partialsort(__, 1:3; rev=true)  |> # only need top 3
+    (__[1], sum(__))                   # return highest, and sum of top 3

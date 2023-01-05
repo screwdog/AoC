@@ -1,19 +1,17 @@
 top3 = [0,0,0]
-open(raw"C:\Users\rayha\Desktop\AoC\2022\Day 1\input.txt") do file
-    elfSum = 0
+open(raw"input.txt") do file
+    elfsum = 0
     while !eof(file)
         line = readline(file)
-        if line != ""
+        if line != "" 
             cals = parse(Int, line)
-            elfSum += cals
+            elfsum += cals
         else
-            if elfSum > top3[1]
-                position = searchsortedfirst(top3, elfSum)
-                insert!(top3, position, elfSum)
-                popfirst!(top3)
+            if elfsum > minimum(top3)
+                top3[argmin(top3)] = elfsum
             end
-            elfSum = 0
+            elfsum = 0
         end
     end
 end
-println("Task 1: $(top3[end])\nTask 2: $(sum(top3))")
+println("Task 1: $(maximum(top3))\nTask 2: $(sum(top3))")
