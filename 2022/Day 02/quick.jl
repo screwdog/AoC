@@ -1,3 +1,11 @@
+"""
+Quick.jl
+========
+
+This file is my attempt at solving the puzzle at the time of release
+and is not necessarily good practice. 
+"""
+
 task1plays = Dict([
 "A X" => 1 + 3,
 "A Y" => 2 + 6,
@@ -22,10 +30,10 @@ task2plays = Dict([
 "C Z" => 1 + 6
 ])
 
-(readlines(raw"C:\Users\rayha\Desktop\AoC\2022\Day 2\input.txt") |>
+(readlines(raw"input.txt") |>
     L -> map(s -> task1plays[s], L) |>
     sum,
 
-readlines(raw"C:\Users\rayha\Desktop\AoC\2022\Day 2\input.txt") |>
+readlines(raw"input.txt") |>
     L -> map(s -> task2plays[s], L) |>
     sum)
