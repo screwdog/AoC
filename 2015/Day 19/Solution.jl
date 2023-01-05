@@ -1,15 +1,13 @@
-splitElements(str) = eachmatch(r"([A-Z][a-z]?|e)", str) |> collect |> ms -> first.(ms)
-element2Int(str) = parse(Int, str, base=36)
-str2VecInt(str) = element2Int.(splitElements(str))
-function readdata(file)
-    lines = filter((≠)(""), readlines(file))
-    transformlines, moleculeline = lines[1:end-1], lines[end]
+module Day19
+using Underscores
+include("Data.jl")
+include("Transforms.jl")
+include("Search.jl")
 
-    molecule = str2VecInt(moleculeline)
-    transforms = Vector{Vector{Int}}[]
-    for line ∈ transformlines
-        m = match(r"(\w+) => (\w+)", line)
-        push!(transforms, str2VecInt.([m[2], m[1]]))
-    end
-    return (molecule, transforms)
+const TARGET = element2Int("e")
+
+function day19p2()
+    transforms, molecule = readdata("input.txt")
+    return mintransforms(transforms, molecule, TARGET)
 end
+end;
