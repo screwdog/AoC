@@ -1,67 +1,73 @@
-const MAX_TRANSFORMS = 10_000
-
-const PP_OVERLAP = 1
-const PP_NUMTRANS = 2
-const P_OVERLAP = 1
-const P_FROM = 2
-const P_NUMTRANS = 3
-
-PartPrefix = Tuple{Int, Int}
-Prefix = Tuple{Int, Int, Int}
-prefix(p::PartPrefix, from) = Prefix(p[PP_OVERLAP], from, p[PP_NUMTRANS])
-
-function findoverlaps(transform, molecule)
-    length(transform[T_TO]) > length(molecule) && return Int[]
-    return 1:findlast(map(==, transform[T_TO], molecule))
-end
-
-function prefixes(transforms, molecule, from, maxtransforms)
-    maxtransforms ≥ 1               || return PartPrefix[]
-    length(from) < length(molecule) || return PartPrefix[]
-
-    prefs = PartPrefix[]
-    possibles = selectfirsts(transforms, from[1], molecule[1])
-    for transform ∈ possibles
-        overlaps = findoverlaps(transform, molecule)
-        for overlap ∈ overlaps
-            newmolecule, newfrom = partialtransform(transform, molecule, from, overlap)
-            if newfrom == Int[]
-                push!(prefs, (overlap, 1))
-            else
-                newprefs = prefixes(transforms, newmolecule, newfrom, maxtransforms-1)
-                map!(p -> p .+ (overlap, 1), newprefs)
-                append!(prefs, newprefs)
-            end
+function expandnode(transforms::Vector{Transform}, molecule, generations, node)
+    newnodes = Node[]
+    for transform ∈ transforms
+        offsets = findall((==)(element(node)), to(transform))
+        for offset ∈ offsets
+            append!(newnodes,
+                expandnode(transform, molecule, generations, newelement(node, from(transform)), offset)
+            )
         end
     end
-    return prefs
+    return newnodes
 end
 
-function prefixes(transforms, molecule)
-    prefs = Prefix[]
-    possibles = selectany(transforms, molecule[1])
-    for transform ∈ possibles
-        overlaps = findoverlaps(transform, molecule)
-        for overlap ∈ overlaps
-            newmolecule, from = partialtransform(transform, molecule, Int[], overlap)
-            append!(prefs, prefix(prefixes(transforms, newmolecule, from, MAX_TRANSFORMS), transform[T_FROM]))
-        end
+function expandnode(transform::Transform, molecule, generations, node, offset)
+    newnodes = Node[]
+    leftnodes = expandleft(transform, molecule, generations, node, offset)
+    for leftnode ∈ leftnodes
+        append!(newnodes, expandright(transform, molecule, generations, leftnode, offset))
     end
-    return prefs
+    return newnodes
 end
 
-function mintransforms(transforms, molecule, target, maxtransforms=MAX_TRANSFORMS)
-    maxtransforms ≥ 1 || return maxtransforms + 1
-    possibles = prefixes(transforms, molecule)
-    best = maxtransforms + 1
-    for (prefixlength, atom, numtransforms) ∈ possibles
-        if prefixlength < length(molecule)
-            newMolecule = changeprefix(molecule, prefixlength, atom)
-            extratransforms = mintransforms(transforms, newMolecule, target, best)
-        else
-            extratransforms = atom == target ? 0 : best - numtransforms
-        end
-        best = min(best, numtransforms + extratransforms)
-    end
-    return best
+ExpandFns = @NamedTuple begin   # Arguments
+    newoffset::Function         # (offset)
+    newlocation::Function       # (node)
+    isend::Function             # (offset, transform)
+    hasroom::Function           # (offset, transform, molecule, node)
+    join::Function              # (newnode, node)
+    bound::Function             # (generations, location)
 end
+
+function _expand(transform, molecule, generations, node, offset, fns)
+    curroffset = fns.newoffset(offset)
+    currlocation = fns.newlocation(node)
+
+    fns.isend(offset, transform)                    && return [node]
+    fns.hasroom(offset, transform, molecule, node)  || return Node[]
+
+    newnodes = Node[]
+    if to(transform)[curroffset] == molecule[currlocation]
+        leafnode = Node(currlocation)
+        append!(newnodes,
+            _expand(transform, molecule, generations, fns.join(leafnode, node), curroffset, fns)
+        )
+    end
+    expandnodes = fns.bound(generations, currlocation)
+    for expandnode ∈ expandnodes
+        if element(expandnode) == to(transform)[curroffset]
+            append!(newnodes,
+                _expand(transform, molecule, generations, fns.join(expandnode, node), curroffset, fns)
+            )
+        end
+    end
+    return newnodes
+end
+const E_LEFT = ExpandFns((
+    o               -> o - 1,
+    n               -> first(n) - 1,
+    (o, t)          -> o == 1,
+    (o, t, m, n)    -> o ≤ first(n),
+    leftjoin,
+    endat
+))
+const E_RIGHT = ExpandFns((
+    o               -> o + 1,
+    n               -> last(n) + 1,
+    (o, t)          -> o == length(t),
+    (o, t, m, n)    -> length(t) - o ≤ length(m) - last(n),
+    rightjoin,
+    startat
+))
+expandleft(transform, molecule, generations, node, offset) = _expand(transform, molecule, generations, node, offset, E_LEFT)
+expandright(transform, molecule, generations, node, offset) = _expand(transform, molecule, generations, node, offset, E_RIGHT)

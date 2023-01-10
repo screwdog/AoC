@@ -1,7 +1,6 @@
-const T_FROM = 1
-const T_TO = 2
+const NULL_ELEMENT = 0
 
-_splitElements(str) = @_ str             |> 
+splitElements(str) = @_ str             |> 
     eachmatch(r"([A-Z][a-z]?|e)", __)   |>
     collect                             |>
     first.(__)
@@ -16,15 +15,6 @@ function readdata(file)
     transforms = @_ transformlines      |>
         match.(r"(\w+) => (\w+)", __)   |>
         map(str2VecInt.(_), __)         |>
-        hcat(__...)
+        Transform.(__)
     return (transforms, molecule)
-end
-
-function allatoms(transforms)
-    @_ transforms               |>
-        vcat(__...)             |>
-        unique                  |>
-        sort!                   |>
-        Pair.(__, 1:length(__)) |>
-        Dict
 end
