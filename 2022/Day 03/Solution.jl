@@ -10,10 +10,10 @@ function day3(part2)
             if !part2
                 numitems = length(backpack)÷2
                 pocket1, pocket2 = first(backpack, numitems), last(backpack, numitems)
-                common = first(pocket1 ∩ pocket2) # we assume there's exactly 1 item in common!
+                common = only(pocket1 ∩ pocket2)
             else
                 elf2, elf3 = readline(file), readline(file)
-                common = first(backpack ∩ elf2 ∩ elf3) # again assuming there's only 1 item in common
+                common = only(backpack ∩ elf2 ∩ elf3)
             end
             Σ += priority(common)
         end
