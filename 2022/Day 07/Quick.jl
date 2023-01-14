@@ -1,3 +1,10 @@
+"""
+Quick.jl
+========
+
+This is my first attempt at solving this puzzle under time constraints at time
+of release and doesn't necessarily reflect good coding practices.
+"""
 function day7(p1)
     input = readlines("input.txt")
 
@@ -33,6 +40,7 @@ function day7(p1)
     if p1
         smalldirs = []
         for dir ∈ dirs
+            # dirsize = sum(last, files[startswith.(first.(files), dir)])
             dirsize = filter(f -> startswith(f[1], dir), files) |>
                 L -> map(f -> f[2], L) |>
                 sum
@@ -47,12 +55,11 @@ function day7(p1)
                 sum
             push!(dirsizes, [dir, dirsize])
         end
+        # sort!(dirsizes, by=last)
         sort!(dirsizes, lt=(d1, d2) -> d1[2] < d2[2])
         totalsize = dirsizes[findfirst(d -> d[1] == "/", dirsizes)][2]
         dir = findfirst(d -> totalsize - d[2] ≤ 40_000_000, dirsizes)
         return dirsizes[dir][2]
     end
 end
-
-#day7(true)
 day7.([true, false])
