@@ -36,6 +36,14 @@ addsubdir!(d::Dir, name) = d.subdirs[name] = Dir(d)
 subdir(d::Dir, name) = d.subdirs[name]
 subdirs(d::Dir) = values(d.subdirs)
 
+# custom types often display poorly in the REPL so having custom pretty-
+# printing can be helpful
+Base.show(io::IO, d::Dir) = print(io,
+    d.parent === nothing ? "Root " : "Sub", "directory:\n   ",
+    d.filesize, "b in files, ", length(d.subdirs), " subdirectories, ",
+    d.size ≥ 0 ? d.size : "???", "b total size"
+)
+
 # "cd /" command requires knowledge of the root node and only occurs as the
 # first line of input, so we can just commence processing at the root and
 # ignore this command. We also ignore any "ls" commands as they have no

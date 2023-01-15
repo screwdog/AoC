@@ -33,6 +33,10 @@ function processline!(cmds, line, loc, dirs, files)
 end
 
 filesize(file) = last(file)
+# since we store all our files / dirs as fully qualified names, a file is in
+# some subdirectory of a given directory if the directory name is a prefix of
+# the file name. So we can use startswith to find all files contained within
+# a directory (or its subdirectories)
 allfiles(dir, files) = filter(f -> startswith(first(f), dir), files)
 dirsize(dir, files) = sum(filesize, allfiles(dir, files), init=0) # need init in case allfiles is empty
 dirsizes(dirs, files) = [[d, dirsize(d, files)] for d ∈ dirs]
