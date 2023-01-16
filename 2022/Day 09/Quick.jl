@@ -1,3 +1,11 @@
+"""
+Quick.jl
+========
+
+This is my initial attempt at solving this puzzle at the time of release, done
+under time constraints. This does not necessarily reflect good coding practice.
+"""
+
 global dirs = Dict([
     'U' => [0, -1],
     'D' => [0, 1],

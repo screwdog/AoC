@@ -1,5 +1,5 @@
 """
-`day8() -> (part 1 answer, part 2 answer)`
+`day8()`
 
 Solve Advent of Code 2022 Day 8 puzzle, parts 1 and 2. That is, a tuple of the
 number of visible trees and the highest scenic score for all trees in the grid
