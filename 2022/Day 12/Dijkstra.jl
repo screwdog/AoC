@@ -1,41 +1,73 @@
-function canGo(loc, dir, heights)
-    newLoc = loc + dir
-    newLoc[1] ∈ axes(heights, 1) || return false
-    newLoc[2] ∈ axes(heights, 2) || return false
-    return heights[loc...] - heights[newLoc...] ≤ 1
+"""
+`validstep(from, to, heights) -> Bool`
+
+Return whether stepping between `from` and `to` is valid in `heights`. Doesn't
+check that `to` is a valid location, nor that `from` and `to` are adjacent.
+"""
+validstep(from, to, heights) = checkbounds(Bool, heights, from) && heights[to] - heights[from] ≤ 1
+
+"""
+`nextloc(visited, dist) -> CartesianIndex`
+
+Return the next location to be visited in Dijkstra's algorithm - the location
+at the shortest distance that is unvisited.
+"""
+function nextloc(visited, dist)
+    possibles = filter(loc -> !visited[loc], CartesianIndices(visited))
+    return argmin(loc -> dist[loc], possibles)
 end
 
-shortestPath(heights, S::Vector{Int}, E) = shortestPath(heights, [S], E)
-function shortestPath(heights, S::Vector{Vector{Int}}, E)
+"""
+`neighbours(heights, location) -> Vector{CartesianIndex}`
+
+Return all allowable steps from `location`.
+"""
+function neighbours(heights, location)
+    possibles = Ref(location) .+ [
+        CartesianIndex(-1,  0),
+        CartesianIndex( 1,  0),
+        CartesianIndex( 0, -1),
+        CartesianIndex( 0,  1)
+    ]
+    return filter(from -> validstep(from, location, heights), possibles)
+end
+
+"""
+`shortestpath(heights, S, E) -> (distance, path)`
+
+Calculates the shortest path between either a starting location or a vector of
+potential starting locations `S`, and an ending location `E`, along with the
+length of the shortest path. This is for convenience as, by definition,
+`distance == length(path) - 1`.
+"""
+shortestpath(heights, S::CartesianIndex{2}, E) = shortestpath(heights, [S], E)
+function shortestpath(heights, S::Vector{CartesianIndex{2}}, E)
     MAX_DIST = 100_000
-    function nextLoc(visited, dist)
-        minDist, minI, minJ = MAX_DIST, 0, 0
-        for i ∈ axes(visited, 1), j ∈ axes(visited, 2)
-            if !visited[i,j] && dist[i,j] < minDist
-                minDist, minI, minJ = dist[i,j], i, j
-            end
-        end
-        return [minI, minJ]
-    end
 
-    directions = [[-1,0],[0,1],[1,0],[0,-1]]
-    N = size(heights, 1)
-    M = size(heights, 2)
+    visited = falses(axes(heights))
+    dist = fill(MAX_DIST, axes(heights))
+    # start at E and work backwards to (any of) S
+    dist[E] = 0
+    # record the location of the next step in shortest path for each location
+    next = similar(heights, CartesianIndex{2})
 
-    visited = falses(N, M)
-    dist = fill(MAX_DIST, N, M)
-    dist[E...] = 0
-
-    while !any(s -> visited[s...], S)
-        location = nextLoc(visited, dist)
-        visited[location...] = true
-        neighbours = filter(d -> canGo(location, d, heights), directions) .+ Ref(location)
-        for neighbour ∈ neighbours
-            if dist[neighbour...] > dist[location...]
-                dist[neighbour...] = dist[location...] + 1
+    # visited[S] is equivalent to map(s -> visited[s], S) but neater
+    while !any(visited[S])
+        location = nextloc(visited, dist)
+        visited[location] = true
+        for neighbour ∈ neighbours(heights, location)
+            if dist[neighbour] > dist[location] + 1
+                dist[neighbour] = dist[location] + 1
+                next[neighbour] = location
             end
         end
     end
-    distances = map(s -> dist[s...], S)
-    return minimum(distances)
+    # equivalent to minimum(s -> dist[s], S)
+    location = S[argmin(dist[S])]
+    path = [location]
+    while next[location] ≠ location
+        location = next[location]
+        push!(path, location)
+    end
+    return minimum(dist[S]), path
 end
