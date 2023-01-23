@@ -1,45 +1,63 @@
+module Day13
 using Underscores
-function readdata(file)
-    @_ readchomp(file)                  |>
-        split(__, "\n\n")               |>
-        split.(__, "\n")                |>
-        map.(eval(Meta.parse(_)), __)
-end
+include("Data.jl")
 
-correctOrder(p1::Int, p2::Int) = sign(p2 - p1)
-correctOrder(p1::Int, p2::Vector) = correctOrder([p1], p2)
-correctOrder(p1::Vector, p2::Int) = correctOrder(p1, [p2])
-function correctOrder(p1::Vector, p2::Vector)
-    length(p1) == length(p2) == 0 && return 0
-    length(p1) == 0 && return 1
+"""
+`packetorder(p1, p2) -> Int`
+
+Compares packets `p1` and `p2`, recursively if necessary, and returns one of
+-1, 0, or 1 to indicate their ordering. That is:
+                            -1, if p1 < p2
+    packetorder(p1, p2) = {  0, if p1 == p2
+                             1, if p1 > p2
+"""
+packetorder(p1::Int, p2::Int) = sign(p1 - p2)
+packetorder(p1::Int, p2::Vector) = packetorder([p1], p2)
+packetorder(p1::Vector, p2::Int) = packetorder(p1, [p2])
+# implements the comparison algorithm as described in the problem, recursing as
+# necessary and using the various methods above.
+function packetorder(p1::Vector, p2::Vector)
+    length(p1) == 0 && return length(p2) == 0 ? 0 : -1
     for i ∈ axes(p1,1) ∩ axes(p2,1)
-        cmp = correctOrder(p1[i], p2[i])
+        cmp = packetorder(p1[i], p2[i])
         cmp ≠ 0 && return cmp
     end
-    length(p1) < length(p2) && return 1
-    length(p1) == length(p2) && return 0
-    return -1
+    # All comparable items are equivalent. If neither has items left then they
+    # are equal, otherwise the shorter one comes first.
+    return sign(length(p1) - length(p2))
 end
-ispacketless(p1, p2) = correctOrder(p1, p2) == 1
-ispacketless(ps) = ispacketless(ps[1], ps[2])
 
-function day13p1(test=false)
-    inputfile = test ? "test.txt" : "input.txt"
-    @_ readdata(inputfile)          |>
+"""
+`ispacketless(p1, p2) -> Bool`
+`ispacketless(itr) -> Bool`
+
+Returns `true` if packet `p1` comes before packet `p2` and false otherwise. If
+given an iterator expects exactly two elements and compares them.
+"""
+ispacketless(p1, p2) = packetorder(p1, p2) == -1
+ispacketless(ps) = ispacketless(ps...)
+
+function day13p1()
+    @_ readdata()                   |>
+        # pair the packets for comparison
+        Iterators.partition(__, 2)  |>
         ispacketless.(__)           |>
-        map(*, 1:length(__), __)    |>
+        # returns the indexes where ispacketless is true
+        findall                     |>
         sum
 end
 
-function day13p2(test=false)
-    inputfile = test ? "test.txt" : "input.txt"
-    packets = @_ readdata(inputfile)    |>
-        vcat(__...)                     |>
-        sort!(__, lt=ispacketless)
-
-    dividerPackets = [[[2]], [[6]]]
-    return @_ searchsortedfirst.(Ref(packets), dividerPackets, lt=ispacketless) + [0,1] |>
-        reduce(*, __)
+function day13p2()
+    packets = sort!(readdata(), lt=ispacketless)
+    dividers = [[[2]], [[6]]]
+    # find where dividers would be in the list. Need Ref to treat packets as
+    # not iterable (and just iterate over dividers). searchsortedfirst is
+    # efficient but relies on the data being sorted, we could also use
+    # findfirst(!ispacketless) or similar.
+    locations = searchsortedfirst.(Ref(packets), dividers, lt=ispacketless)
+    # location of the 2nd packet is off by one since the first packet isn't
+    # actually in the list
+    return locations + [0, 1] |> prod
 end
-(day13p1(), day13p2())
-
+end;
+(Day13.day13p1(), Day13.day13p2())

@@ -1,6 +1,10 @@
-# My initial, quick solution to the problem. Done under time
-# pressure, this doesn't necessarily reflect good practice,
-# Julian or otherwise.
+"""
+Quick.jl
+========
+
+This is my initial attempt at solving this puzzle and doesn't necessarily
+reflect good practice.
+"""
 
 using Underscores
 
