@@ -1,3 +1,11 @@
+"""
+Quick.jl
+========
+
+This is my initial attempt at solving the puzzle, under time constraints at the
+time of release. It does not necessarily reflect good coding practices.
+"""
+
 allCoords(str) = eachmatch(r"(?:(\d+),(\d+))", str)
 
 function addPath!(cave, topleft, p1, p2)

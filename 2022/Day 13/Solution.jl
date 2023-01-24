@@ -37,6 +37,13 @@ given an iterator expects exactly two elements and compares them.
 ispacketless(p1, p2) = packetorder(p1, p2) == -1
 ispacketless(ps) = ispacketless(ps...)
 
+"""
+`day13p1() -> Int`
+
+Calculates the solution to Advent of Code 2022 day 13, part 1, reading packet
+data from "input.txt". That is, returns the sum of the indices where the pair
+of packets are correctly ordered.
+"""
 function day13p1()
     @_ readdata()                   |>
         # pair the packets for comparison
@@ -47,6 +54,13 @@ function day13p1()
         sum
 end
 
+"""
+`day13p2() -> Int`
+
+Calculates the solution to Advent of Code 2022 day 13, part 2, reading packet
+data from "input.txt". That is, the product of the indices of where the
+divider packets are in the sorted list of packets.
+"""
 function day13p2()
     packets = sort!(readdata(), lt=ispacketless)
     dividers = [[[2]], [[6]]]
