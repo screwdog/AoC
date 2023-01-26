@@ -1,3 +1,13 @@
+"""
+Quick.jl
+========
+
+This represents my initial attempt at solving the puzzle, under time constraints
+as the puzzle was released. It does not necessarily represent good practice. In
+particular, the solution to part 2 is very inefficient and can take several
+hours to run.
+"""
+
 using Underscores
 function readdata(test=false)
     @_ (test ? "test.txt" : "input.txt")    |>
@@ -15,7 +25,8 @@ function excludeRange(sensor, beacon, row)
     width = d - δy
     return sensor[1]-width:sensor[1]+width
 end
-excludeRange(sensorAndBeacon, row) = excludeRange(first(sensorAndBeacon, 2), last(sensorAndBeacon, 2), row)
+excludeRange(sensorAndBeacon, row) =
+    excludeRange(first(sensorAndBeacon, 2), last(sensorAndBeacon, 2), row)
 
 function day15p1(test=false)
     ROW = test ? 10 : 2_000_000
@@ -31,7 +42,8 @@ end
 
 tuningFreq(x,y) = 4_000_000x + y
 function day15p2(test=false)
-    # WARNING! This code may take several hours to run. It was simply my first (and worst) attempt at the puzzle
+    # WARNING! This code may take several hours to run. It was simply my first
+    # (and worst) attempt at the puzzle
 
     COORD_RANGE = test ? (0:20) : (0:4_000_000)
     colData = @_ test |>

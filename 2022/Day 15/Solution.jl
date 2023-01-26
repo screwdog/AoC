@@ -1,46 +1,61 @@
+module Day15
 using Underscores
-include("DisjointRanges.jl")
-function readdata(test=false)
-    @_ (test ? "test.txt" : "input.txt")    |>
-        read(__, String)                    |>
-        eachmatch(r"(-?\d+)", __)           |>
-        first.(__)                          |>
-        parse.(Int, __)                     |>
-        reshape(__, (4,:))
-end
+include("Data.jl")
+include("Part1.jl")
+include("Part2.jl")
 
-dist(p1, p2) = +(abs.(p1 - p2)...)
-function excludeRange(sensor, beacon, row)
-    d = dist(sensor, beacon)
-    δy = abs(row - sensor[2])
-    width = d - δy
-    return sensor[1]-width:sensor[1]+width
-end
-excludeRange(sensorAndBeacon, row) =
-    excludeRange(sensorAndBeacon[1:2], sensorAndBeacon[3:4], row)
+"""
+`day15p1() -> Int`
 
-function day15p1(test=false)
-    ROW = test ? 10 : 2_000_000
-    @_ test                     |>
-        readdata                |>
+Solves Advent of Code 2022 day 15 puzzle part 1, reading input from "input.txt".
+That is, calculates the number of locations in row `2_000_000` that are excluded
+from containing a beacon, given the sensor-beacon pairs given in the input.
+"""
+function day15p1()
+    ROW = 2_000_000
+    data = readdata()
+    # Beacons in given row don't count as excluded locations
+    beacons = beaconsinrow(data, ROW)
+    return @_ data              |>
+        # data stores each sensor-beacon pair as a column
         eachcol                 |>
-        excludeRange.(__, ROW)  |>
-        reduce(∪, __)           |>
-        extrema                 |>
-        -(__...)                |>
-        abs
+        excluderange.(__, ROW)  |>
+        # convert the exclusion ranges into a set of disjoint ranges
+        disjoint!               |>
+        setdiff!(__, beacons)   |>
+        sum(length, __)
 end
 
-function day15p2(test=false)
-    COORD_RANGE = test ? (0:20) : (0:4_000_000)
-    colData = @_ test   |>
-        readdata        |>
-        eachcol
+tuningfreq(x,y) = 4_000_000*x + y
+tuningfreq(point) = tuningfreq(point...)
 
-    for y ∈ COORD_RANGE
-        excluded = DisjointRanges(excludeRange.(colData, y))
-        excluded ≠ COORD_RANGE && return setdiff(COORD_RANGE, excluded)
+"""
+`day15p2() -> Int`
+
+Solves Advent of Code 2022 day 15 puzzle part 2, reading input from "input.txt".
+That is, calculates the "tuning frequency" of the only point within range that
+could contain an undetected beacon.
+"""
+function day15p2()
+    COORD_RANGE = 0:4_000_000
+    data = readdata()
+    # Calculate the x-intercepts of the lines running along the edges of the
+    # exclusion zone around each sensor.
+    intercepts = interceptdata(data)
+    
+    # find all pairs of intercepts that are spaced 2 apart
+    lefts = findpairs(intercepts, TR, BL)
+    rights = findpairs(intercepts, BR, TL)
+
+    for left ∈ lefts, right ∈ rights
+        # calculate the possible point from the intercepts
+        point = beaconpoint(left, right)
+        # check that the point exists and isn't excluded by some other pair
+        if point ≠ nothing && !isexcluded(data, point)
+            # check that it is actually in the correct range
+            isin(point, COORD_RANGE) && return tuningfreq(point)
+        end
     end
-    return nothing
 end
-@time day15p2(true)
+end;
+(Day15.day15p1(), Day15.day15p2())
