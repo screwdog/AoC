@@ -1,3 +1,11 @@
+"""
+Quick.jl
+========
+
+This represents my initial attempts at solving the puzzle and doesn't reflect
+good programming practice.
+"""
+
 using Underscores
 include("Dijkstra.jl")
 
@@ -73,7 +81,7 @@ function day16p1(test=false)
     valves, connections = readdata(inputfile)
     start = valveNum(parse(Int, "AA", base=36), valves)
     distances = similar(connections, Int)
-    distances = reduce(hcat, shortestPath!.(Ref(valves), Ref(connections), axes(valves,1), Ref(distances)))
+    distances = reduce(hcat, shortestpath!.(Ref(valves), Ref(connections), axes(valves,1), Ref(distances)))
  
     mostPressure(start, valves, distances)
 end
@@ -84,7 +92,7 @@ function day16p2(test=false)
     valves, connections = readdata(inputfile)
     start = valveNum(parse(Int, "AA", base=36), valves)
     distances = similar(connections, Int)
-    distances = reduce(hcat, shortestPath!.(Ref(valves), Ref(connections), axes(valves,1), Ref(distances)))
+    distances = reduce(hcat, shortestpath!.(Ref(valves), Ref(connections), axes(valves,1), Ref(distances)))
  
     maxPressure = 0
     

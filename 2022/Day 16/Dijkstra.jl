@@ -1,19 +1,19 @@
-function shortestPath!(valves, connections, source, distances)
+function shortestpath!(valves, connections, source, distances)
     MAX_DIST = 100_000
-    valveNums = axes(valves, 1)
-    dist = fill(MAX_DIST, valveNums)
+    valvenums = axes(valves, 1)
+    dist = fill(MAX_DIST, valvenums)
     dist[source] = 0
 
-    queue = sort!(collect(valveNums), lt=(v1,v2) -> dist[v1] < dist[v2])
+    queue = sort!(collect(valvenums), lt=(v1,v2) -> dist[v1] < dist[v2])
 
     while !isempty(queue)
-        currentNode = popfirst!(queue)
-        neighbours = collect(valveNums)
-        filter!(i -> connections[currentNode, i], neighbours)
+        location = popfirst!(queue)
+        neighbours = collect(valvenums)
+        filter!(i -> connections[location, i], neighbours)
         for neighbour ∈ neighbours
-            newDist = dist[currentNode] + 1
-            if newDist < dist[neighbour]
-                dist[neighbour] = newDist
+            newdist = dist[location] + 1
+            if newdist < dist[neighbour]
+                dist[neighbour] = newdist
                 sort!(queue, lt=(v1,v2) -> dist[v1] < dist[v2])
             end
         end
