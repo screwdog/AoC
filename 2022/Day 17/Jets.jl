@@ -1,5 +1,12 @@
 const LEFT_CHAR = '<'
 
+"""
+`StatefulCycle`
+
+Represents an iterator that returns items from a finite collection in order
+and then repeats this process endlessly. Used to represent the sequence of
+blocks falling and the sequence of air jets.
+"""
 mutable struct StatefulCycle
     vec::Vector
     len::Int
@@ -15,11 +22,12 @@ function Base.iterate(sc::StatefulCycle, state=nothing)
 end
 Base.IteratorSize(::StatefulCycle) = Base.IsInfinite()
 Base.IteratorEltype(::StatefulCycle) = Base.HasEltype()
-Base.eltype(sc::StatefulCycle) = el(sc.vec)
+Base.eltype(sc::StatefulCycle) = eltype(sc.vec)
 Base.isdone(sc::StatefulCycle, state=nothing) = false
 
-wind(v::Vector{Bool}) = StatefulCycle(v)
-wind(str::AbstractString) = @_ str  |> 
+jets(v::Vector{Bool}) = StatefulCycle(v)
+# create an iterator from a string of '<' and '>" as found in "input.txt".
+jets(str::AbstractString) = @_ str  |> 
     collect                         |>
     map((==)(LEFT_CHAR), __)        |>
-    wind
+    jets
