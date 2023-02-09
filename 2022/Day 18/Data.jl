@@ -1,31 +1,39 @@
-function readdata(test=false)
-    inputfile = test ? "test.txt" : "input.txt"
-    @_ read(inputfile, String)  |>
-        eachmatch(r"(\d+)", __) |>
-        first.(__)              |>
-        parse.(Int, __)         |>
-        reshape(__, 3, :)
+# Abstract supertype of our two droplet types
+abstract type AbstractDroplet <: AbstractArray{Bool, 3} end
+
+# read the input and return an iterator of points, where each point is an
+# iterator of exactly three integer values
+function readdata()
+    @_ read("input.txt", String)    |>
+        eachmatch(r"(\d+)", __)     |>
+        only.(__)                   |>
+        parse.(Int, __)             |>
+        reshape(__, 3, :)           |>
+        eachcol
 end
 
-function gridExtents(data)
-    xs, ys, zs = extrema(data, dims=(2,))
-    return (range(xs...), range(ys...), range(zs...))
+ascartesian(points) = map(p -> CartesianIndex(p...), points)
+
+# takes a sequence of points and returns a sequence of CartesianIndex's that
+# represent them as well as the size of their bounding box. The values are
+# shifted as their absolute location in space is unimportant for this problem
+# and Julia arrays make it easier if all indices are positive.
+
+# We also add a margin of empty space around the points (ie all indices are
+# 2 ≤ index ≤ bound-1) so that the external empty space is a single connected
+# region for traversal in part 2
+function processdata(data)
+    indices = ascartesian(data)
+    extents = extrema(indices) .+ (CartesianIndex(-1,-1,-1), CartesianIndex(1,1,1))
+    offset = first(extents) - CartesianIndex(1,1,1)
+    return (indices .- Ref(offset), last(extents) - offset)
 end
 
-function makeVolume!(data, volume, origin)
-    for p ∈ eachcol(data)
-        (x, y, z) = p .- origin
-        volume[x,y,z] = true
-    end
-end
+processed_input() = readdata() |> processdata
 
-function getVolume(test=false)
-    inputdata = readdata(test)
-    rs = gridExtents(inputdata)
+"""
+`droplet(T::Type) -> droplet`
 
-    volume = fill(false, length.(rs))
-    origin = first.(rs) .- 1
-
-    makeVolume!(inputdata, volume, origin)
-    return volume
-end
+Returns a droplet of the specified type based on the data in "input.txt".
+"""
+droplet(T::Type) = T(processed_input())

@@ -1,27 +1,47 @@
+module Day18
 using Underscores
+using BenchmarkTools
+
+const neighbours = CartesianIndex.([
+    (-1, 0, 0), ( 1, 0, 0),
+    ( 0,-1, 0), ( 0, 1, 0),
+    ( 0, 0,-1), ( 0, 0, 1)
+])
+
 include("Data.jl")
-include("Solids.jl")
+include("Grids.jl")
+include("Points.jl")
+include("Part2.jl")
 
-isvalid(p, volume) = all(p .∈ axes(volume))
-isvalid(i, j, k, volume) = isvalid((i,j,k), volume)
+# Count the number of faces of cube that aren't connected to another cube
+openfaces(droplet, cube) = 6 - sum(c -> droplet[c], [cube] .+ neighbours)
+openfaces(droplet) = cube -> openfaces(droplet, cube)
 
-function countVoids(i, j, k, volume)
-    Σ = 0
-    isvalid(i-1,j,k, volume) && volume[i-1,j,k] && (Σ += 1)
-    isvalid(i+1,j,k, volume) && volume[i+1,j,k] && (Σ += 1)
-    isvalid(i,j-1,k, volume) && volume[i,j-1,k] && (Σ += 1)
-    isvalid(i,j+1,k, volume) && volume[i,j+1,k] && (Σ += 1)
-    isvalid(i,j,k-1, volume) && volume[i,j,k-1] && (Σ += 1)
-    isvalid(i,j,k+1, volume) && volume[i,j,k+1] && (Σ += 1)
-    return 6 - Σ
+# Fallback method. `Points` has a specialised version.
+eachcube(droplet) = findall(droplet)
+
+surfacearea(droplet) = sum(openfaces(droplet), eachcube(droplet))
+
+"""
+`day18() -> (Int, Int)`
+
+Solve Advent of Code 2022 day 18, parts 1 and 2. That is, reads the location of
+cubes forming a lava droplet from "input.txt" and calculates the total surface
+area (including internal voids) and the external surface area of this droplet.
+"""
+function day18(datatype = Grid)
+    drop = droplet(datatype)
+    return (surfacearea(drop), outersurface(drop))
 end
 
-function day18(part2, test=false)
-    volume = getVolume(test)
-    part2 && solidify!(volume)
-    @_ volume                               |>
-        Iterators.product(axes(__)...)      |>
-        collect                             |>
-        filter(volume[_...], __)            |>
-        sum(countVoids(_..., volume), __)
+function comparison()
+    println("Default implementation with dense data storage:")
+    @btime day18(Grid)
+    println("Using sparse storage:")
+    @btime day18(Points)
+    return nothing
 end
+end;
+# Day18.day18()
+
+Day18.comparison()
