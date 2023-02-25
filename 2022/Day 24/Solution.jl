@@ -1,74 +1,144 @@
-BLIZZARD_CHARS = "^>v<"
-const D_UP = 1
-const D_RIGHT = 2
-const D_DOWN = 3
-const D_LEFT = 4
+module Day24
+using Underscores
 
-struct Point
-    i::Int
-    j::Int
-    k::Int
-end
-Point(itr) = Point(itr...)
-Base.:+(u::Point, v::Point) = Point(u.i + v.i, u.j + v.j, u.k + v.k)
-Base.:-(u::Point) = Point(-u.i, -u.j, -u.k)
-Base.:-(u::Point, v::Point) = Point(u.i - v.i, u.j - v.j, u.k - v.k)
-Base.:*(n, p::Point) = Point(n*p.i, n*p.j, n*p.k)
-Base.mod1(p::Point, t) = Point(mod1.(coords(p), t))
-coords(p::Point) = (p.i, p.j, p.k)
-Base.broadcastable(p::Point) = Ref(p)
+"""
+`Blizzards <: AbstractMatrix{Bool}`
 
-sameLocation(u, v) = u.i == v.i && u.j == v.j
+Represents the current state of all blizzards in the valley. `blizzard[x, y]`
+returns whether at least one blizzard is in location `x, y` (ie can't be moved
+into by the expedition).
 
-NEIGHBOURS = Point.([
-    (-1,0,1), (0,1,1), (1,0,1), (0,-1,1), (0,0,1)
-])
-
-struct Blizzard
-    i::Int
-    j::Int
-    direction::Int
-end
-Blizzard(i, j, c::Char) = Blizzard(i, j, findfirst(c, BLIZZARD_CHARS))
-
-struct InputData
-    width::Int
-    height::Int
-    blizzards::Vector{Blizzard}
-end
-
-function readdata(filename)
-    lines = readlines(filename)
-    height = length(lines)-2
-    width = length(lines[1])-2
-    blizzards = Blizzard[]
-    for i ∈ 1:height
-        js = findall((∈)(BLIZZARD_CHARS), lines[i+1])
-        append!(blizzards, Blizzard.(i, js .- 1, collect(lines[i+1])[js]))
+To move all blizzards forward one time step use `next!(b::Blizzards)`.
+"""
+struct Blizzards <: AbstractMatrix{Bool}
+    # blizzards is an n x m x 4 array. each slice corresponds to blizzards
+    # moving in a different direction (see `direction(i)`).
+    blizzards::BitArray{3}
+    # circshift! can't be performed in-place so to avoid unnecessary allocations
+    # we maintain a temporary buffer for reuse.
+    temp::BitMatrix
+    function Blizzards(blizzards::BitArray{3})
+        new(blizzards, similar(blizzards[:,:,end]))
     end
-    return InputData(width, height, blizzards)
 end
+Base.size(b::Blizzards) = size(b.blizzards[:,:,begin])
 
-function makeValley(data)
-    depth = lcm(data.height, data.width)
-    maxSize = (data.height, data.width, depth)
-    valley = fill(false, maxSize)
-    for blizzard ∈ data.blizzards
-        start = Point(blizzard.i, blizzard.j, 1)
-        for n ∈ 0:depth-1
-            nextPoint = mod1(start + n*NEIGHBOURS[blizzard.direction], maxSize)
-            valley[coords(nextPoint)...] = true
-        end
+# use @view as without the creation of the temporary array for the slice is a
+# significant performance impact.
+Base.getindex(b::Blizzards, i, j) = any(@view b.blizzards[i, j, :])
+direction(i) = [(0, -1), (1, 0), (0, 1), (-1, 0)][i]
+
+# use circshift! to move each layer of blizzards in the correct direction. This
+# automatically "spawns" a new blizzard when one leaves the other side.
+function next!(b::Blizzards)
+    for i ∈ axes(b.blizzards, 3)
+        circshift!(b.temp, b.blizzards[:,:,i], direction(i))
+        b.blizzards[:,:,i] .= b.temp
     end
-    return valley
+    return b
 end
 
-include("Dijkstra.jl")
+"""
+`Valley <: AbstractMatrix{Bool}`
 
-function day24(part2, test=false)
-    valley = (test ? "test.txt" : "input.txt")           |>
-        readdata                                |>
-        makeValley                              |>
-        (part2 ? shortestPaths : shortestPath)
+Represents where in the valley the expedition can reach at the current time.
+That is, `valley[x, y]` is whether that location could contain the expedition
+at the current time, having moved there from the starting location.
+"""
+mutable struct Valley <: AbstractMatrix{Bool}
+    locations::BitMatrix
+    start::CartesianIndex{2}
+    finish::CartesianIndex{2}
 end
-day24.(false:true)
+Valley(dims::Tuple, start, finish) = Valley(falses(dims), start, finish)
+Base.size(v::Valley) = size(v.locations)
+Base.getindex(v::Valley, i, j) = v.locations[i, j]
+Base.setindex!(v::Valley, val, i, j) = v.locations[i, j] = val
+isfinished(v::Valley) = v[v.finish]
+
+# calculate locations for the expedition in the next time step, starting from
+# `prev` and with the given blizzard locations
+function next!(v::Valley, prev::Valley, blizzards::Blizzards)
+    # extensive broadcasting and sub-matrices generally means copying and
+    # allocating new arrays. This is easily avoided with @views
+    @views begin
+        prev .= v
+
+        # check if we can move up, down, left, right (ignoring blizzards)
+        v[1:end-1, :] .= v[1:end-1, :] .|| prev[2:end, :]
+        v[2:end, :]   .= v[2:end, :]   .|| prev[1:end-1, :]
+        v[:, 1:end-1] .= v[:, 1:end-1] .|| prev[:, 2:end]
+        v[:, 2:end]   .= v[:, 2:end]   .|| prev[:, 1:end-1]
+
+        # since we only keep track of locations _within_ the valley (ie not the
+        # walls and the true start/finish loctaions), we always include the
+        # possibility of only entering the valley proper at this point.
+        v[v.start] = true
+
+        # remove all positions blocked by blizzards
+        v .= v .&& .!blizzards
+    end
+end
+
+# for part 2, reset and switch start and finish
+function reverse!(v::Valley)
+    v .= false
+    v.start, v.finish = v.finish, v.start
+end
+
+empty_char() = '.'
+wall_char() = '#'
+dir_char(i) = "^>v<"[i]
+function readinput()
+    lines = readlines("input.txt")
+    # -1 because we will remove the leading wall characters
+    startcol = findfirst(empty_char(), lines[begin]) - 1
+    finishcol = findlast(empty_char(), lines[end]) - 1
+    start = CartesianIndex(startcol, 1)
+    finish = CartesianIndex(finishcol, length(lines) - 2)
+
+    # remove the outer walls
+    chars = @_ lines[begin+1:end-1] |>
+        strip.(__, wall_char())     |>
+        collect.(__)                |>
+        hcat(__...)
+
+    # store the locations of all blizzards moving in a particular direction in
+    # a single layer, one per direction
+    blizzards = BitArray(undef, size(chars)..., 4)
+    for i ∈ 1:4
+        blizzards[:, :, i] .= chars .== dir_char(i)
+    end
+
+    return (Blizzards(blizzards), Valley(size(chars), start, finish))
+end
+
+max_time() = 10_000
+function quickest!(blizzards, valley)
+    prev = deepcopy(valley)
+    for time ∈ 1:max_time()
+        next!(blizzards)
+        next!(valley, prev, blizzards)
+        isfinished(prev) && return time
+    end
+end
+
+"""
+`day24(part2) -> Int`
+
+Solve Advent of Code 2022 day 24. That is, determine the quickest time necessary
+to cross the given valley while avoiding blizzards. If `part2` is `true` then
+calculate the time to cross, return and then cross again.
+"""
+function day24(part2 = false)
+    blizzards, valley = readinput()
+    time = quickest!(blizzards, valley)
+    !part2 && return time
+
+    reverse!(valley)
+    time += quickest!(blizzards, valley)
+    reverse!(valley)
+    return time += quickest!(blizzards, valley)
+end
+end;
+Day24.day24.(false:true)
