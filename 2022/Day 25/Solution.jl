@@ -1,39 +1,37 @@
+module Day25
 using Underscores
-CHARS = Dict([
-    -2 => '=',
-    -1 => '-',
-     0 => '0',
-     1 => '1',
-     2 => '2',
-])
-DIGITS = Dict(values(CHARS) .=> keys(CHARS))
 
-padSNAFU(str, len) = lpad(str, len, CHARS[0])
-SNAFU2vec(str) = map(c -> DIGITS[c], collect(str))
-vec2Dec(v) = foldl((a,b) -> 5a + b, v)
-function _normdigit!(v)
-    r = mod(v[end], -2:2)
-    v[1] += (v[end] - r)÷5
-    v[end] = r
-end
-function normalise!(v)
-    for i ∈ reverse(2:size(v, 1))
-        abs(v[i]) > 2 && @views _normdigit!(v[i-1:i])
-    end
-    while abs(v[1]) > 2
-        pushfirst!(v, 0)
-        @views _normdigit!(v[1:2])
-    end
-    return v
-end
-vec2SNAFU(v) = join(map(d -> CHARS[d], normalise!(v)))
+const SNAFU_CHARS = "=-012"
+snafu_char(i) = SNAFU_CHARS[i + 3]
+snafu_val(c) = findfirst((==)(c), SNAFU_CHARS) - 3
 
-function day25(test=false)
-    @_ (test ? "test.txt" : "input.txt")    |>
-        readlines                           |>
-        padSNAFU.(__, maximum(length, __))  |>
-        SNAFU2vec.(__)                      |>
-        sum                                 |>
-        vec2SNAFU(__)
+parsesnafu(str) = @_ snafu_val.(collect(str)) |> foldl((a,b) -> 5a + b, __)
+
+function snafu(n)
+    n == 0 && return 
+    snafu_chars = Char[]
+    while n > 0
+        # next 2 lines are the same for normal base conversion
+        d = mod(n, -2:2)
+        n = (n - d) ÷ 5
+        pushfirst!(snafu_chars, snafu_char(d))
+    end
+    return join(snafu_chars)
 end
-day25()
+
+"""
+`day25() -> String`
+
+Solves Advent of Code 2022 day 25, reading the input from "input.txt". That is,
+sums the numbers in the input file, interpreting them as balanced quinary, and
+returns the sum in the same format.
+"""
+function day25()
+    @_ "input.txt"      |>
+        readlines       |>
+        parsesnafu.(__) |>
+        sum             |>
+        snafu
+end
+end;
+Day25.day25()
